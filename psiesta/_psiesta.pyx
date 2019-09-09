@@ -1,9 +1,9 @@
 cimport numpy as np
 import numpy as np
-from collections import Namedtuple
+from collections import namedtuple
 from mpi4py import MPI
 
-RunOutput = Namedtuple("RunOutput", "e forces")
+RunOutput = namedtuple("RunOutput", "e forces")
 
 cdef extern:
     void fpsiesta_launch(char* label, int* mpi_comm)
@@ -30,12 +30,13 @@ class FSiesta:
         if self.locations is not None and locations.shape != self.locations.shape:
             raise ValueError()
         self.locations = locations
-        cdef double[::1] loc_view = locations
+        print(locations.shape)
+        cdef double[:, ::1] loc_view = locations
         cdef int na = locations.shape[0]
         cdef double e = 0
         forces = np.zeros_like(locations)
-        cdef double[::1] force_view = forces
-        fpsiesta_forces(self.label.encode(), &na, &loc_view[0], &e, &force_view[0])
+        cdef double[:, ::1] force_view = forces
+        fpsiesta_forces(self.label.encode(), &na, &loc_view[0, 0], &e, &force_view[0, 0])
         return RunOutput(e, forces)
 
     def quit(self):

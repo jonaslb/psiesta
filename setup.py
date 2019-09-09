@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-""" PSiesta: Siesta as a Python library
-To install, please follow these instructions:
+"""PSiesta: Siesta as a Python library
+To build, please follow these instructions:
+0. Have intel compiler and mkl: The linking is not setup to work with foss (yet)
 1. Compile the 'SiestaSubroutine' library in your Siesta Obj dir: `make lib`
-2. OBJ=/my/libraries/siesta/Obj ./setup.py install [--user] [--prefix=/custom/prefix/]
+2. OBJ=/my/libraries/siesta/Obj CC=mpiicc ./setup.py build_ext --inplace
+The _psiesta python library is dumped at the root of the repository. Which is not the best place but it works.
+It is a todo to make this work 'better' and with gnu as well.
 """
 import setuptools  # noqa
 from distutils.core import setup
@@ -14,15 +17,14 @@ from contextlib import contextmanager
 import os
 import subprocess as sp
 from itertools import chain
+import sys
 
 
-# 1. in your siesta obj dir: `make lib`
-# 2. OBJ=/my/siesta/Obj/ FC=mpiifort ./setup.py
+if any(x in sys.argv for x in ("build", "install", "develop")):
+    print(__doc__)
+    print()
+    sys.exit("-- You provided some argument, but only build_ext --inplace works properly right now")
 
-# Need to $FC -o fpsiesta.a -c psiesta/c_bindings/fpsiesta.f90 $OBJ/{libSiestaForces.a,*.mod}
-# then $CC -shared -pthread -fPIC -fwrapv -O2 -Wall -fno-strict-aliasing  -I/usr/include/python3.7\
-# -o _psiesta.so _psiesta/psiesta.c psiesta/c_bindings/fpsiesta.a -lgfortran
-# possibly -lifcore for intel (other flags i dont know)
 
 SIESTAOBJ = Path(os.environ.get("OBJ"))
 if SIESTAOBJ == Path(""):
@@ -40,37 +42,29 @@ def cd(where):
 args = \
     "-qopenmp -lmkl_intel_thread -lmkl_core -lmkl_intel_lp64 -lmkl_blas95_lp64 "\
     "-lmkl_lapack95_lp64 -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 -lnetcdff -lnetcdf "\
-    "-lhdf5_fortran -lhdf5 -lz "
+    "-lhdf5_fortran -lhdf5 -lz -lmkl_avx512 -lmkl_def "
 
-test = "libSiestaForces.a libfdf.a libwxml.a libxmlparser.a MatrixSwitch.a libSiestaXC.a libmpi_f90.a libncdf.a libfdict.a"
-test = [str(SIESTAOBJ/t) for t in test.split(" ")]
+siestalib = "libSiestaForces.a libfdf.a libwxml.a libxmlparser.a MatrixSwitch.a libSiestaXC.a "\
+            "libmpi_f90.a libncdf.a libfdict.a"
+siestalib = [str(SIESTAOBJ/t) for t in siestalib.split(" ")]
+
 
 def build_fortran():
+    # TODO: Make this nice and all? Like the cython extension
     with cd(Path(__file__).parent/"psiesta"/"c_bindings"):
         cmd = f"mpiifort -fPIC -c -O3 -xHost -I{SIESTAOBJ!s}/ -fp-model source -qopenmp -o fpsiesta.o fpsiesta.f90"
-        print(cmd)
-        sp.run(cmd, shell=True, check=True)
-        cmd = f"mpiifort -fPIC -O3 -xHost -I{SIESTAOBJ!s}/ -o fpsiesta.a fpsiesta.o "
-        fmods = chain(SIESTAOBJ.glob("*.a"),)  # SIESTAOBJ.glob("*.mod")
-        fmods = test
-        # lets see if -l{all the libs} is necessary or what
-        cmd += " ".join(str(fmod) for fmod in fmods)
-        cmd += " " + args
         print(cmd)
         sp.run(cmd, shell=True, check=True)
 
 
 ext_modules = [
     Extension(
-        '_psiesta',  # name
-        ['psiesta/_psiesta.pyx'],  # source
-        # other compile args for the compiler (icc for now)
+        '_psiesta',
+        ['psiesta/_psiesta.pyx'],
         extra_compile_args=['-fPIC', '-O3', '-xHost', "-qopenmp"],
-        # other files to link to
-        # extra_link_args=["psiesta/c_bindings/fpsiesta.a"],
-        # i think! needed -lgfortran at least
+        # TODO: In gcc use -lgfortran instead of ifcore
         libraries=["ifcore"] + [lib[2:] for lib in args.split(" ") if lib.startswith("-l")],
-        extra_objects=["psiesta/c_bindings/fpsiesta.a"],
+        extra_objects=["psiesta/c_bindings/fpsiesta.o"] + siestalib,
         include_dirs=[str(SIESTAOBJ)],
     )
 ]
