@@ -1,11 +1,11 @@
 module fpsiesta
-  implicit none
-  use mpi
-  use fsiesta
   use, intrinsic :: iso_c_binding
+  use mpi
+  use fsiesta, only: siesta_launch, siesta_units, siesta_forces, siesta_quit
+  implicit none
 
-  private
   public :: fpsiesta_launch, fpsiesta_forces, fpsiesta_quit
+  private
 
 contains
   function c2fstr(s) result(str)
@@ -26,7 +26,7 @@ contains
     character(len=:), allocatable :: f_label
     integer(c_int), intent(in) :: mpi_comm
     f_label = c2fstr(label)
-    call siesta_launch(f_label, mpi_comm=mpi_comm)
+    call siesta_launch(f_label, 0, mpi_comm)
     call siesta_units('Ang', 'eV')
   end subroutine fpsiesta_launch
 
@@ -34,12 +34,13 @@ contains
     character(kind=c_char, len=1), intent(in) :: label
     character(len=:), allocatable :: f_label
     integer(c_int), intent(in) :: na
-    real(c_double), intent(inout), dimension(na, 3) :: xa
+    real(c_double), intent(in), dimension(3, na) :: xa
     real(c_double), intent(out) :: e
-    real(c_double), intent(out), dimension(na, 3) :: fa
+    real(c_double), intent(out), dimension(3, na) :: fa
     f_label = c2fstr(label)
+    e = 0
     call siesta_forces(f_label, na, xa, energy=e, fa=fa)
-  end subroutine fpsiesta_forces()
+  end subroutine fpsiesta_forces
 
   subroutine fpsiesta_quit(label) bind(c)
     character(kind=c_char, len=1), intent(in) :: label

@@ -18,7 +18,8 @@ class FSiesta:
             mpi_comm = MPI.COMM_WORLD
         self.mpi_comm = mpi_comm
         self.locations = None
-        fpsiesta_launch(label.encode(), mpi_comm.py2f())
+        cdef int mpiint = mpi_comm.py2f()
+        fpsiesta_launch(self.label.encode(), &mpiint)
         self.active = True
 
     def run(self, locations):
@@ -31,10 +32,10 @@ class FSiesta:
         self.locations = locations
         cdef double[::1] loc_view = locations
         cdef int na = locations.shape[0]
-        cdef int e = 0
+        cdef double e = 0
         forces = np.zeros_like(locations)
         cdef double[::1] force_view = forces
-        fpsiesta_forces(label.encode(), &na, &locations[0], &force_view)
+        fpsiesta_forces(self.label.encode(), &na, &loc_view[0], &e, &force_view[0])
         return RunOutput(e, forces)
 
     def quit(self):
