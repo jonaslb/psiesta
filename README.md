@@ -8,7 +8,7 @@ It's still all based on fdf-files, and you can only run a calculation, get energ
 from mpi4py import MPI
 import numpy as np
 import sisl as si
-from _psiesta import FSiesta  # structure is undecided / due to poc build process, hence the underscore
+from psiesta import FSiesta  # the fsiesta name comes from the siesta module that its built on
 
 rank = MPI.COMM_WORLD.Get_rank()
 
@@ -34,7 +34,7 @@ my_run.quit()  # gracefully exit siesta
 
 You could execute the above script with eg. `mpirun -n 4 python3 myscript.py`. Siesta will then run inside the Python processes.
 'Siesta as a subroutine' has the ability to get other properties, but the bindings are not made yet. Also it is todo to find out what Siesta even exposes through this interface.
-In any case, anything relevant can still be extracted from calculation directory (eg. the tshs-file, although I'm not certain whether editing it will make it work as a restart file).
+In any case, anything relevant can still be extracted from files in the calculation directory. It is recommended to use [sisl](https://github.com/zerothi/sisl) for this.
 
 So, although this provides Python-integration, Siesta is still a file-based calculator. The Python control 'only' makes it easier to do calculations where many custom displacements are needed.
 
