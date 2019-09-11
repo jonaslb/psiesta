@@ -1,8 +1,8 @@
 # PSiesta: Siesta as a Python library
 
 This repository contains Python bindings for the [Siesta as a subroutine](https://bazaar.launchpad.net/~siesta-maint/siesta/trunk/files/head:/Util/SiestaSubroutine/) functionality in Siesta.
-Currently you can mpi-execute siesta controlled from Python. There are some limitations:
-It's still all based on fdf-files, and you can only run a calculation, get energy, forces and stress, alter the structure, and then hot-rerun the calculation. Example:
+Currently you can mpi-execute siesta controlled from Python.
+It's still based on fdf-files, but you can run a calculation, get energy, forces and stress, *then alter the structure in Python, and hot-rerun the calculation*. Example:
 
 ```python
 from mpi4py import MPI
@@ -33,20 +33,22 @@ my_run.quit()  # gracefully exit siesta
 ```
 
 You could execute the above script with eg. `mpirun -n 4 python3 myscript.py`. Siesta will then run inside the Python processes.
-'Siesta as a subroutine' has the ability to get other properties, but the bindings are not made yet. Also it is todo to find out what Siesta even exposes through this interface.
-In any case, anything relevant can still be extracted from files in the calculation directory. It is recommended to use [sisl](https://github.com/zerothi/sisl) for this.
+Relevant properties, other than those returned directly, can be read from the output files in the calculation directory in-between runs.
+It is recommended to use [sisl](https://github.com/zerothi/sisl) for this.
 
-So, although this provides Python-integration, Siesta is still a file-based calculator. The Python control 'only' makes it easier to do calculations where many custom displacements are needed.
+So, although these bindings provide Python-integration, Siesta is still a file-based calculator.
+The Python control primarily makes it easier to do calculations where many custom displacements are needed.
 
+An important limitation is that you can only create the one `FSiesta` object once on each mpi process.
+This is a limitation from fsiesta/siesta itself, further stemming from the fact that Siesta was never originally designed to be used as an 'object calculator' but rather as a monolithic program.
 
 ## Building
-Please see the `setup.py` docstring. Currently most link parameters etc. are hardcoded.
-There is probably not really any way around having to do some manual work if you use a different setup than intel+mkl which it is set up for now.
-But if you can think of a good way solve this, perhaps eg. by integrating with the arch.make in siesta-obj, please make an issue or pull request :)
+You must have a properly set up `arch.make` for Siesta. In your Siesta Obj-dir, you must have at least compiled Siesta.
+You can then run `OBJ=/my/custom/siesta/Obj/ python3 setup.py install [--user] [--prefix=<prefix>]` (or use `build` instead of `install`) to build Psiesta.
+It makes use of Siesta's own `Makefile` (which includes your `arch.make`) in combination with `--dry-run` to extract the compilation and link arguments.
+It *should* work for both intel and gnu compilers, but be aware that LTO can complicate things, and ensure that any external libraries that are used (eg. flook) are compiled with `-fPIC`.
 
 ## Behaviour
-See also `siesta/Util/SiestaSubroutine/README`.
-The fsiesta module that this is based on copies all fdf and psf-files from your working directory `<cwd>` into `<cwd>/<systemlabel>` where `<systemlabel>` is the label you give.
-In that folder it will then start reading from `<systemlabel>.fdf` as a regular Siesta calculation.
-The only difference here compared to a regular run is that immediately after the scf cycle, you can pull out some information you like to treat in Python.
-You can also change the structure and restart the calculation.
+See also [the SiestaSubroutine readme](https://bazaar.launchpad.net/~siesta-maint/siesta/trunk/view/head:/Util/SiestaSubroutine/README).
+In summary, the fsiesta module that this is based on copies all fdf and psf-files from your working directory `<cwd>` into `<cwd>/<systemlabel>` where `<systemlabel>` is the label you give.
+In that folder it will then start reading from `<systemlabel>.fdf` and putting any output files like a regular Siesta calculation, except with the structure provided from Python.
