@@ -62,7 +62,7 @@ def get_build_args(objdir):
     return mpifort, compile_args, [f"-I{SIESTAOBJ!s}/"] + includes
 
 
-def get_link_args(objdir, compiler):
+def get_link_args(objdir, compiler, extra=[]):
     p = sp.run("make --dry-run siesta", shell=True, universal_newlines=True, stdout=sp.PIPE,
                check=True, cwd=objdir)
     output = p.stdout.split("\n")
@@ -71,7 +71,7 @@ def get_link_args(objdir, compiler):
         if not l.endswith("\\"):
             break
     lineend = linestart + i + 1
-    args = "\n".join(output[linestart:lineend]).replace("\\\n", " ").split()
+    args = "\n".join(output[linestart:lineend]+extra).replace("\\\n", " ").split()
     libpath = list(filter(lambda a: a.startswith("-L"), args))
     runlibpath = list(filter(lambda a: a.startswith("-Wl,-rpath="), args))
     libs = list(filter(lambda a: a.startswith("-l"), args))
@@ -104,6 +104,9 @@ if BUILD:
     SIESTAOBJ = Path(SIESTAOBJ).resolve()
     ensure_build_fsiesta(SIESTAOBJ)
 
+    # eg "-lmkl_avx512 -lmkl_def" (on niflheim)
+    EXTRA_ARGS = os.environ.get("EXTRA_COMP_ARGS", "").split()
+
     fc, comp_args, includes = get_build_args(SIESTAOBJ)
     if "-fp-model" in comp_args:
         # intel argument. works fine without it. it needs a second argument that we aren't parsing
@@ -111,11 +114,11 @@ if BUILD:
     print(f"DETECTED FC: {fc}")
     print(f"DETECTED compiler args: {comp_args}")
     print(f"DETECTED includes: {includes}")
-    build_fortran(fc, comp_args, includes)
+    build_fortran(fc, comp_args + EXTRA_ARGS, includes)
     fortranlib = dict(
         ifort="ifcore", mpiifort="ifcore"
     ).get(fc, "gfortran")
-    lpaths, runlibpaths, libs, siestalibs = get_link_args(SIESTAOBJ, fc)
+    lpaths, runlibpaths, libs, siestalibs = get_link_args(SIESTAOBJ, fc, extra=EXTRA_ARGS)
     lpprint = '\n'.join(lpaths)
     print(f"DETECTED lpaths=[multiline][\n{lpprint}\n]")
     lpprint = '\n'.join(runlibpaths)
@@ -143,7 +146,7 @@ setup(
         "mpi4py",
     ],
     packages=['psiesta'],
-    version='0.1',
+    version='0.2',
     description='Siesta as a Python library',
     author="Jonas Lundholm Bertelsen",
     url="https://github.com/jonaslb/psiesta",

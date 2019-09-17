@@ -1,7 +1,9 @@
 module fpsiesta
   use, intrinsic :: iso_c_binding
   use mpi
-  use fsiesta, only: siesta_launch, siesta_units, siesta_forces, siesta_quit
+  use fsiesta, only: siesta_launch, siesta_units, siesta_forces, siesta_quit, siesta_get
+  use m_energies, only: siesta_fermi_energy => Ef
+  use units, only: siesta_eV => eV
   implicit none
 
   public :: fpsiesta_launch, fpsiesta_forces, fpsiesta_quit
@@ -51,12 +53,37 @@ contains
     call siesta_quit(f_label)
   end subroutine
 
-  ! TODO : Although the subroutine exists, I don't know what Siesta really exposes. (nothing?)
-!   subroutine siesta_get( label, property, value, units )
-!     character(len=*), intent(in) :: label      : Name of siesta process
-!     character(len=*), intent(in) :: property   : Name of required magnitude
-!     real(dp),         intent(out):: value      : Value of the magnitude
-!                                                (various dimensions overloaded)
-!     character(len=*), intent(out):: units      : Name of physical units
-!   end subroutine siesta_get
+  subroutine fpsiesta_run_analyse(label) bind(c)
+    character(kind=c_char, len=1), intent(in) :: label
+    character(len=:), allocatable :: f_label
+    f_label = c2fstr(label)
+
+  end subroutine fpsiesta_run_analyse
+
+  subroutine fpsiesta_get(label, property, value, units) bind(c)
+    ! TODO : Siesta currently exposes exactly zero properties through this method.
+    ! It is probably better to write bindings directly for each property like fpsiesta_fermi_energy
+    character(kind=c_char, len=1), intent(in) :: label, property
+    character(len=:), allocatable :: f_label      ! Name of siesta process
+    character(len=:), allocatable :: f_property   ! Name of required magnitude
+    real(c_double), intent(out)  :: value      ! Value of the magnitude
+                                               ! (various dimensions overloaded)
+    character(kind=c_char, len=1), intent(out) :: units      ! Name of physical units
+    character(len=254) :: f_units
+    ! integer(c_int), intent(out) :: unitlen  ! length of units string
+
+    f_label = c2fstr(label)
+    f_property = c2fstr(property)
+    call siesta_get(f_label, f_property, value, f_units)
+    units = trim(f_units) // c_null_char
+    ! unitlen = len(units)  ! Fortran knows this, so pass it along for easier handling in C-land?
+  end subroutine fpsiesta_get
+
+  subroutine fpsiesta_fermi_energy(label, value) bind(c)
+    character(kind=c_char, len=1), intent(in) :: label
+    character(len=:), allocatable :: f_label      ! Name of siesta process
+    real(c_double), intent(out)  :: value
+    f_label = c2fstr(label)  ! not really used here
+    value = siesta_fermi_energy / siesta_eV
+  end subroutine fpsiesta_fermi_energy
 end module fpsiesta
