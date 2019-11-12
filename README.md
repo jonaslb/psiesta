@@ -1,10 +1,10 @@
 # PSiesta: Siesta as a Python library
 
-This repository contains Python bindings for the [Siesta as a subroutine](https://bazaar.launchpad.net/~siesta-maint/siesta/trunk/files/head:/Util/SiestaSubroutine/) functionality in Siesta.
+This repository contains Python bindings for the [Siesta as a subroutine](https://gitlab.com/siesta-project/siesta/tree/master/Util/SiestaSubroutine) functionality in Siesta.
 Currently you can mpi-execute siesta controlled from Python.
 It's still based on fdf-files, but you can run a calculation, get energy, forces and stress, *then alter the structure in Python, and hot-rerun the calculation*.
 
-As an example, the following `myscript.py` could be executed with `mpirun -n 8 python3 myscript.py`:
+As an example, the following `myscript.py` could be executed with `mpirun -n 8 python3 -m mpi4py myscript.py`:
 
 ```python
 import numpy as np; from mpi4py import MPI
@@ -50,7 +50,7 @@ It *should* work for both intel and gnu compilers, but be aware that LTO can com
 On some platforms it is necessary to link more libraries than Siesta is otherwise compiled with. It is currently a little unclear why, but in one case I needed to use `EXTRA_COMP_ARGS="-lmkl_avx512 -lmkl_def"` (which the setup.py-file will recognize).
 
 ## Behaviour
-See also [the SiestaSubroutine readme](https://bazaar.launchpad.net/~siesta-maint/siesta/trunk/view/head:/Util/SiestaSubroutine/README).
+See also [the SiestaSubroutine readme](https://gitlab.com/siesta-project/siesta/tree/master/Util/SiestaSubroutine/README).
 In summary, the fsiesta module that this is based on copies all fdf and psf-files from your working directory `<cwd>` into `<cwd>/<systemlabel>` where `<systemlabel>` is the label you give.
 In that folder it will then start reading from `<systemlabel>.fdf` and putting any output files like a regular Siesta calculation, except with the structure provided from Python.
 
