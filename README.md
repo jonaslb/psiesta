@@ -36,10 +36,13 @@ Siesta will run inside the Python processes.
 Relevant properties, other than those returned directly, can be read from the output files in the calculation directory in-between runs.
 It is recommended to use [sisl](https://github.com/zerothi/sisl) for this.
 
+There are some details: You *must* specify `MD.TypeOfRun forces` in your fdf-file in order to have Siesta properly receive coordinates from Python.
+Further you may have to use a patched Siesta (there are two bugs that might cause crashes) -- see [JonasLB's Siesta branch on Gitlab](gitlab.com/jonaslb/siesta) for the patched version.
+
 
 ## Obtaining source, building and installing
 You can obtain the source by simply cloning this repository.
-To build, you must have a properly set up `arch.make` for Siesta in your Obj-dir, and you must have at least compiled Siesta there.
+To build, you must have a properly set up `arch.make` for Siesta in your Obj-dir, and you must have at least compiled Siesta there (see the note above for a patched Siesta).
 You can then run `OBJ=/my/custom/siesta/Obj/ python3 setup.py install [--user] [--prefix=<prefix>]` (or use `build` instead of `install`) to build Psiesta.
 The setup.py-file makes use of Siesta's own `Makefile` (which includes your `arch.make`) in combination with `--dry-run` to extract the compilation and link arguments.
 It *should* work for both intel and gnu compilers, but be aware that LTO can complicate things, and ensure that any external libraries that are used (eg. flook) are compiled with `-fPIC`.
@@ -54,6 +57,7 @@ In that folder it will then start reading from `<systemlabel>.fdf` and putting a
 ### A short summary:
 
 * These details may change in future versions of Psiesta, so make sure to stay updated.
+* Put `MD.TypeOfRun forces` in the fdf-file. This is needed for siesta to accept coordinates from Python.
 * Start Siesta with `siesta = FSiesta("<mylabel>")`. Siesta will create a `mylabel` work directory and copy `fdf` and `psf` files in there. You can only do this once.
 * Run Siesta with `result = siesta.run(geom=None, xyz=None, cell=None)`. If you provide `geom`, it should be an object with `.xyz` and `.cell` attributes (eg. a sisl geometry), and then you mustn't specify them by their keyword. On the first run, both must be specified either by geom or keywords, but on second and following runs, you can specify `xyz` or `cell` only, if you like. Returns a namedtuple with members: `energy`, `forces`, `stress`.
 * Get eg. the fermi-energy with `siesta.get_fermi_energy()`. More properties could be exposed like this in the future or perhaps included in the results along with the total energy and forces.
