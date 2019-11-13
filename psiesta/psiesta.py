@@ -35,8 +35,6 @@ class _FSiestaLibAsClass:
         self._module = importlib.util.module_from_spec(self._spec)
         self._loader.exec_module(self._module)
 
-
-
     def launch(self, label):
         self._fsiesta = self._module.FSiesta(label, mpi_comm=comm)
         self.launched = True

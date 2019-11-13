@@ -15,7 +15,7 @@ class FilePSiestaASE(FilePSiesta, Calculator):
     def need_rerun(self, geom):
         return (
             (self.last_result is None)
-            or np.any(np.linalg.norm(geom.xyz-self.last_geom.xyz, axis=0)>1e-4)
+            or np.any(np.linalg.norm(geom.xyz-self.last_geom.xyz, axis=0) > 1e-4)
             )
 
     def _run_if_needed(self, atoms):
@@ -39,7 +39,7 @@ class FilePSiestaASE(FilePSiesta, Calculator):
         return self.last_result.stress.copy()
 
     def calculation_required(self, atoms, quantities):
-        return need_rerun(self._atoms2geom(atoms))
+        return self.need_rerun(self._atoms2geom(atoms))
 
     def get_fermi_level(self):
         if self.last_result is not None:
