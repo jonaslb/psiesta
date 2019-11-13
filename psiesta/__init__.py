@@ -1,2 +1,3 @@
 from mpi4py import MPI
-from ._psiesta import FSiesta
+from .psiesta import FilePSiesta
+#from ._psiesta import FSiesta
