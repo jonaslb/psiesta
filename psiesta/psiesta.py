@@ -1,5 +1,6 @@
 from pathlib import Path
 import importlib
+import tempfile
 from shutil import copyfile
 from .util import chdir
 from mpi4py import MPI
@@ -20,12 +21,8 @@ class _FSiestaLibAsClass:
         """
         self.launched = False
         original_path = Path(importlib.util.find_spec("psiesta._psiesta").origin)
-        self._tmpdir = Path() / ".__siestalibtmp"
-        if rank == 0:
-            self._tmpdir.mkdir(parents=True, exist_ok=True)
-        comm.Barrier()
-        self._name = hex(id(self))  # a kinda unique name (memory address)
-        # TODO: Ensure mpi nodes dont use same _name
+        self._tmpdir = Path(tempfile.mkdtemp(prefix="fsiesta_"))
+        self._name = hex(id(self))
         self._tmplib = self._tmpdir / self._name
         copyfile(original_path, self._tmplib)
 
