@@ -100,7 +100,7 @@ class FilePSiesta(_FSiestaLibAsClass):
 
     @property
     def main_sile(self):
-        return si.get_sile(self.label_dir / self.label+".fdf")
+        return si.get_sile(self.label_dir / (self.label + ".fdf"))
 
     def read_hamiltonian(self):
         with self.main_sile as sile:
