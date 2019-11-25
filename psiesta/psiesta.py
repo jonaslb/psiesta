@@ -55,7 +55,7 @@ class _FSiestaLibAsClass:
 
 
 class FilePSiesta(_FSiestaLibAsClass):
-    def __init__(self, main_fdf, working_dir, label):
+    def __init__(self, main_fdf, working_dir, label, geometry=None):
         """File-based Siesta calculator object. You need to have already set up the fdf files for a valid
         Siesta calculation in `working_dir`. You cannot change the number of atoms or the basis (specie, orbitals)
         but the positions and cell can be changed. If you want to change the number of atoms (or the basis),
@@ -71,16 +71,22 @@ class FilePSiesta(_FSiestaLibAsClass):
         label : str
             The label to use. If you are running several calculations, use a new label for each.
         """
-        self.geom0 = si.get_sile(main_fdf).read_geometry()
+        if geometry is None:
+            self.geom0 = si.get_sile(main_fdf).read_geometry()
+        else:
+            self.geom0 = geometry
         self.working_dir = Path(working_dir)
         super().__init__()
         self.label = label
         self.label_dir = self.working_dir / self.label
+        self.label_dir.mkdir(exist_ok=True)
         with chdir(self.working_dir):
             self.launch(self.label)
+        self.geom0.write(self.label_dir / f"{label}_struct.fdf")
         fdf_prepend = [
             "MD.TypeOfRun forces\n",
             f"SystemLabel {label}\n",
+            f"%include {label}_struct.fdf\n"
         ]
         if rank == 0:
             fdf_contents = list(Path(main_fdf).open())
