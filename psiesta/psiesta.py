@@ -10,6 +10,8 @@ import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
+_first_lib_loc = None
+
 
 class _FSiestaLibAsClass:
     def __init__(self):
@@ -19,8 +21,18 @@ class _FSiestaLibAsClass:
         This is necessary to keep the different Siesta instances from interfering with each others' memory.
         This class is intended to be subclassed, providing only the Lib->Class wrapper functionality.
         """
+        global _first_lib_loc
         self.launched = False
-        original_path = Path(importlib.util.find_spec("psiesta._psiesta").origin)
+
+        if _first_lib_loc is None:
+            # It appears that importlib will "update" find_spec when it has been loaded once,
+            # ie. it will look at a previous temporary file which may have been deleted.
+            # Hence we use _first_lib_loc to work around it.
+            original_path = Path(importlib.util.find_spec("psiesta._psiesta").origin)
+            _first_lib_loc = original_path
+        else:
+            original_path = _first_lib_loc
+
         self._tmpdir = Path(tempfile.mkdtemp(prefix="fsiesta_"))
         self._name = hex(id(self))
         self._tmplib = self._tmpdir / self._name
