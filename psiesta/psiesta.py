@@ -131,5 +131,10 @@ class FilePSiesta(_FSiestaLibAsClass):
         return DM, EDM
 
     def __del__(self):
+        # TODO: chdir may have been set to None if python is shutting down, handle it better
+        if chdir is None:
+            self.launched = False  # dont call fsiesta quit
+            super().__del__()
+            return
         with chdir(self.working_dir):
             super().__del__()
