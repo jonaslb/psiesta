@@ -117,3 +117,7 @@ class FilePSiesta(_FSiestaLibAsClass):
         with self.main_sile as sile:
             DM, EDM = sile.read_density_matrices()
         return DM, EDM
+
+    def __del__(self):
+        with chdir(self.working_dir):
+            super().__del__()
