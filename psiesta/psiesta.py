@@ -2,19 +2,49 @@ from pathlib import Path
 import importlib
 import tempfile
 from shutil import copyfile
-from .util import chdir
 from mpi4py import MPI
 import sisl as si
-import numpy as np
+from io import StringIO
+from contextlib import contextmanager
+import os
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
 
 _first_lib_loc = None
 
 
+def _fdf_to_content(fdflike, base_dir=None, geometry=None):
+    base_dir = base_dir or str(Path().resolve())
+    f = fdflike
+    fdf_is_content = (
+        (   # A list of strings (eg from readlines or str.splitlines)
+            not isinstance(f, str) and hasattr(f, "__iter__")
+            and all(isinstance(s, str) for s in f)
+        )   # Or just a multiline string
+        or (isinstance(f, str) and "\n" in f)
+    )
+    if fdf_is_content and not isinstance(f, str):
+        if all(l.endswith("\n") for l in fdflike):
+            fdflike = "".join(fdflike)
+        else:
+            fdflike = "\n".join(fdflike)
+    if fdf_is_content:
+        if geometry is None:
+            sile = si.io.fdfSileSiesta("_placeholder_" + hex(id(fdflike)))
+            sile._directory = base_dir
+            sile.fh = StringIO(fdflike)
+            geometry = sile.read_geometry()
+    else:
+        p = Path(fdflike)
+        if not p.exists():
+            raise ValueError("fdflike could not be understood as content or path")
+        if geometry is None:
+            geometry = si.get_sile(p, base=base_dir).read_geometry()
+        fdflike = p.read_text()
+    return fdflike, geometry
+
+
 class _FSiestaLibAsClass:
-    def __init__(self):
+    def __init__(self, working_dir=".", comm=MPI.COMM_WORLD):
         """Since Siesta was never intended to be an 'object-style' calculator, but rather a monolithic
         program, we need to jump through hoops to obtain such behaviour anyway.
         Here the linked siesta library is *copied* to a new location on each object instantiation.
@@ -23,6 +53,8 @@ class _FSiestaLibAsClass:
         """
         global _first_lib_loc
         self.launched = False
+        self.working_dir = working_dir
+        self.comm = comm
 
         if _first_lib_loc is None:
             # It appears that importlib will "update" find_spec when it has been loaded once,
@@ -44,8 +76,18 @@ class _FSiestaLibAsClass:
         self._module = importlib.util.module_from_spec(self._spec)
         self._loader.exec_module(self._module)
 
+    @contextmanager
+    def in_working_dir(self):
+        previous_dir = Path().cwd()
+        try:
+            os.chdir(self.working_dir)
+            yield
+        finally:
+            os.chdir(previous_dir)
+
     def launch(self, label):
-        self._fsiesta = self._module.FSiesta(label, mpi_comm=comm)
+        with self.in_working_dir():
+            self._fsiesta = self._module.FSiesta(label, mpi_comm=self.comm)
         self.launched = True
 
     def run(self, **kwargs):
@@ -53,21 +95,25 @@ class _FSiestaLibAsClass:
             raise ValueError("Siesta not launched yet")
         elif not self._fsiesta.active:
             raise ValueError("The fsiesta instance is not active - did you quit it?")
-        return self._fsiesta.run(**kwargs)
+        with self.in_working_dir():
+            r = self._fsiesta.run(**kwargs)
+        return r
 
     def get_fermi_energy(self):
         self._fsiesta.get_fermi_energy()
 
     def __del__(self):
         if self.launched and self._fsiesta.active:
-            self._fsiesta.quit()  # Dealloc memory (Siesta's own responsibility! will leak otherwise)
+            with self.in_working_dir():
+                # Dealloc memory (Siesta's own responsibility, may leak otherwise)
+                self._fsiesta.quit()
         self._tmplib.unlink()  # Remove library copy
         if sum(1 for _ in self._tmpdir.iterdir()) == 0:  # And tmp lib dir if empty
             self._tmpdir.rmdir()
 
 
 class FilePSiesta(_FSiestaLibAsClass):
-    def __init__(self, main_fdf, working_dir, label, geometry=None):
+    def __init__(self, main_fdf, working_dir, label, geometry=None, comm=MPI.COMM_WORLD):
         """File-based Siesta calculator object. You need to have already set up the fdf files for a valid
         Siesta calculation in `working_dir`. You cannot change the number of atoms or the basis (specie, orbitals)
         but the positions and cell can be changed. If you want to change the number of atoms (or the basis),
@@ -75,34 +121,38 @@ class FilePSiesta(_FSiestaLibAsClass):
 
         Parameters
         ----------
-        main_fdf : pathlike, required
-            The main fdf file.
+        main_fdf : string or list of strings or pathlike, required
+            The main fdf file (either the content (multiline str) or path to content)
         working_dir : pathlike, required
             A directory containing supplementary files for the siesta calculation. A directory with label as name
             is created. The actual Siesta calculation executes the main_fdf file in there.
-        label : str
-            The label to use. If you are running several calculations, use a new label for each.
+        label : str, required
+            The label to use. You must use a separate label for each calculation in same working dir.
+        geometry : sisl.Geometry, optional
+            If not given, it is read from the main_fdf.
+        comm : mpi4py.Comm, optional
+            If not given, uses MPI.COMM_WORLD
         """
-        if geometry is None:
-            self.geom0 = si.get_sile(main_fdf).read_geometry()
-        else:
-            self.geom0 = geometry
-        self.working_dir = Path(working_dir)
-        super().__init__()
+        super().__init__(working_dir=working_dir, comm=comm)
+
+        fdf, self.geom0 = _fdf_to_content(main_fdf, base_dir=working_dir, geometry=geometry)
+
         self.label = label
         self.label_dir = self.working_dir / self.label
         self.label_dir.mkdir(exist_ok=True)
-        with chdir(self.working_dir):
-            self.launch(self.label)
+        self.launch(self.label)
+
         self.geom0.write(self.label_dir / f"{label}_struct.fdf")
-        fdf_prepend = [
-            "MD.TypeOfRun forces\n",
-            f"SystemLabel {label}\n",
+        fdf_prepend = (
+            "MD.TypeOfRun forces\n"
+            f"SystemLabel {label}\n"
             f"%include {label}_struct.fdf\n"
-        ]
-        if rank == 0:
-            fdf_contents = list(Path(main_fdf).open())
-            (self.label_dir / (self.label + ".fdf")).open("w").writelines(fdf_prepend + fdf_contents)
+        )
+        if comm.Get_rank() == 0:
+            with (self.label_dir / (self.label + ".fdf")).open("w") as f:
+                f.write(fdf_prepend)
+                f.write(fdf)
+        comm.Barrier()
 
         self.last_result = None
         self.last_geom = self.geom0
@@ -110,31 +160,23 @@ class FilePSiesta(_FSiestaLibAsClass):
     def run(self, geom=None):
         if geom is None:
             geom = self.geom0
-        with chdir(self.working_dir):
-            result = super().run(geom=geom)
-            self.last_result = result
-            self.last_geom = geom
+        result = super().run(geom=geom)
+        self.last_result = result
+        self.last_geom = geom
         return result
 
-    @property
-    def main_sile(self):
+    def get_sile(self):
         return si.get_sile(self.label_dir / (self.label + ".fdf"))
 
     def read_hamiltonian(self):
-        with self.main_sile as sile:
+        with self.get_sile() as sile:
             H = sile.read_hamiltonian()
         return H
 
     def read_density_matrices(self):
-        with self.main_sile as sile:
+        with self.get_sile() as sile:
             DM, EDM = sile.read_density_matrices()
         return DM, EDM
 
     def __del__(self):
-        # TODO: chdir may have been set to None if python is shutting down, handle it better
-        if chdir is None:
-            self.launched = False  # dont call fsiesta quit
-            super().__del__()
-            return
-        with chdir(self.working_dir):
-            super().__del__()
+        super().__del__()  # todo: necessary?

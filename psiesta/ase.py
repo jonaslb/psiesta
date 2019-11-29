@@ -6,6 +6,15 @@ import numpy as np
 
 class FilePSiestaASE(FilePSiesta, Calculator):
     def __init__(self, *args, atom_converter=None, **kwargs):
+        """ASE interface for FilePSiesta calculator, please see that class for the docs.
+
+        Additional parameters
+        ---------------------
+        atom_converter : function, optional
+            A converter that turns ase atoms into sisl geometry. By default uses
+            sisl.Geometry.fromASE, but you may want to use a custom function (eg. setting atom
+            labels or such differently).
+        """
         super().__init__(*args, **kwargs)
         if atom_converter is None:
             self._atoms2geom = si.Geometry.fromASE
