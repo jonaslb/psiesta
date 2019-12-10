@@ -103,10 +103,20 @@ class _FSiestaLibAsClass:
         self._fsiesta.get_fermi_energy()
 
     def __del__(self):
-        if self.launched and self._fsiesta.active:
-            with self.in_working_dir():
-                # Dealloc memory (Siesta's own responsibility, may leak otherwise)
+        # It is not possible to fully unload a library in Python. But we can call Siesta's quit
+        # subroutine to deallocate some memory, close files etc.
+        if os.chdir is None:
+            print("Cannot safely call siesta quit due to python shutdown...")
+        if self.launched and self._fsiesta.active and os.chdir is not None:
+            previous_dir = Path().cwd()
+            try:  # avoid using the contextmanager as it may be None on Python shutdown
+                os.chdir(self.working_dir)
+                # Siesta likes to say 'Job completed', print note to avoid confusion
+                if self.comm.Get_rank and self.comm.Get_rank() == 0:
+                    print("Siesta calculator __del__ message: ", end="")
                 self._fsiesta.quit()
+            finally:
+                os.chdir(previous_dir)
         self._tmplib.unlink()  # Remove library copy
         if sum(1 for _ in self._tmpdir.iterdir()) == 0:  # And tmp lib dir if empty
             self._tmpdir.rmdir()
