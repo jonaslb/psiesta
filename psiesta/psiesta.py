@@ -105,15 +105,15 @@ class _FSiestaLibAsClass:
     def __del__(self):
         # It is not possible to fully unload a library in Python. But we can call Siesta's quit
         # subroutine to deallocate some memory, close files etc.
-        if os.chdir is None:
+        if os.chdir is None:  # Some things are set to None on Python shutdown. You never know.
             print("Cannot safely call siesta quit due to python shutdown...")
-        if self.launched and self._fsiesta.active and os.chdir is not None:
+        elif self.launched and self._fsiesta.active:
+            # Avoid using the chdir context manager as it may be None on Python shutdown
             previous_dir = Path().cwd()
-            try:  # avoid using the contextmanager as it may be None on Python shutdown
+            try:
                 os.chdir(self.working_dir)
-                # Siesta likes to say 'Job completed', print note to avoid confusion
-                if self.comm.Get_rank and self.comm.Get_rank() == 0:
-                    print("Siesta calculator __del__ message: ", end="")
+                # Siesta says "Job completed" in this call. It does so on both stdout and stderr (?)
+                # TODO: Capture it?
                 self._fsiesta.quit()
             finally:
                 os.chdir(previous_dir)
