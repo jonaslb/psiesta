@@ -4,9 +4,10 @@ from ase.calculators.interface import Calculator
 import numpy as np
 
 
-class FilePSiestaASE(FilePSiesta, Calculator):
+class AseFilePSiesta(FilePSiesta, Calculator):
     def __init__(self, *args, atom_converter=None, **kwargs):
         """ASE interface for FilePSiesta calculator, please see that class for the docs.
+        Implements only the base 'Calculator' interface, not the DFTCalculator (yet).
 
         Additional parameters
         ---------------------

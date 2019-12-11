@@ -144,9 +144,10 @@ setup(
     install_requires=[
         "numpy",
         "mpi4py",
+        "sisl",
     ],
     packages=['psiesta'],
-    version='0.2',
+    version='0.3',
     description='Siesta as a Python library',
     author="Jonas Lundholm Bertelsen",
     url="https://github.com/jonaslb/psiesta",

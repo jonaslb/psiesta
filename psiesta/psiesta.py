@@ -134,10 +134,10 @@ class FilePSiesta(_FSiestaLibAsClass):
         main_fdf : string or list of strings or pathlike, required
             The main fdf file (either the content (multiline str) or path to content)
         working_dir : pathlike, required
-            A directory containing supplementary files for the siesta calculation. A directory with label as name
-            is created. The actual Siesta calculation executes the main_fdf file in there.
+            A directory containing supplementary files for the siesta calculation. The actual base directory for Siesta
+            will be `working_dir/label/`.
         label : str, required
-            The label to use. You must use a separate label for each calculation in same working dir.
+            The label to use. You must use a separate label for each calculation in same working directory.
         geometry : sisl.Geometry, optional
             If not given, it is read from the main_fdf.
         comm : mpi4py.Comm, optional
@@ -168,6 +168,19 @@ class FilePSiesta(_FSiestaLibAsClass):
         self.last_geom = self.geom0
 
     def run(self, geom=None):
+        """Run a single step of siesta_forces. The SCF will run and converge as specified in main_fdf.
+
+        Parameters
+        ----------
+        geom : sisl.Geometry, optional
+            The geometry to use. Must match (species and ordering) the original geometry, but coordinates and cell can
+            be different. If not given, the original geometry is used. It is recommended to always pass the desired
+            geometry and not rely on the default.
+
+        Returns
+        -------
+        result : Namedtuple with members energy, forces of shape (na, 3), and stress of shape (3, 3).
+        """
         if geom is None:
             geom = self.geom0
         result = super().run(geom=geom)
@@ -176,14 +189,34 @@ class FilePSiesta(_FSiestaLibAsClass):
         return result
 
     def get_sile(self):
+        """Get the sile of the main fdf file for the calculation.
+
+        Returns
+        -------
+        main_sile : sisl.Sile
+            The main fdf sile for the calculation."""
         return si.get_sile(self.label_dir / (self.label + ".fdf"))
 
     def read_hamiltonian(self):
+        """Read the hamiltonian.
+
+        Returns
+        -------
+        H : sisl.Hamiltonian
+            Read from the label working directory."""
         with self.get_sile() as sile:
             H = sile.read_hamiltonian()
         return H
 
     def read_density_matrices(self):
+        """Read the density matrices.
+
+        Returns
+        -------
+        DM : sisl.DensityMatrix
+            The density matrix read from label working dir.
+        EDM : sisl.EnergyDensityMatrix
+            The energy density matrix read from label working dir."""
         with self.get_sile() as sile:
             DM, EDM = sile.read_density_matrices()
         return DM, EDM
