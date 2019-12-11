@@ -17,32 +17,38 @@ from ase.optimize import QuasiNewton
 from psiesta import FilePSiesta
 from psiesta.ase import AseFilePSiesta
 
-# Read geometry on all nodes: You can also do it on rank 0 only and broadcast with mpi4py
+# mpi rank
+rank = MPI.COMM_WORLD.Get_rank()
+
+# Create the geometry
 geom = si.geom.graphene()
+
 # Make the calculator object.
 # Arguments:       main_fdf,      working_dir,       label,      geometry, comm=MPI.COMM_WORLD
 calc = FilePSiesta("options.fdf", "working/siesta/", "graphene", geometry=geom)
+
 # Run siesta_forces for the given geometry.
 energy, forces, stress = calc.run(geom)
-H = calc.read_hamiltonian()
-print(f"Energy: {energy}.")
-print(f"Fermi energy: {calc.get_fermi_energy()}")
+if rank == 0:
+    H = calc.read_hamiltonian()
+    print(f"Energy: {energy}.")
+    print(f"Fermi energy: {calc.get_fermi_energy()}")
 
-# Mutate the geometry and rerun
+# Mutate the geometry and run again
 geom.xyz[0, 0] += 0.05
 new_results = calc.run(geom)  # new_results is a namedtuple
-H2 = calc.read_hamiltonian()
 
 # Write dH for later use
-if MPI.COMM_WORLD.Get_rank() == 0:
-  dH = H2-H
-  dH.write("deltaH-no-correction.nc")  # for later calculations
+if rank == 0:
+    H2 = calc.read_hamiltonian()
+    dH = H2-H
+    dH.write("my-deltaH.nc")
 
 # Other example: Optimize with ASE:
 atoms = geom.toASE()
 atoms.set_calculator(AseFilePSiesta(
-# main_fdf, working_dir, label, geometry=None, comm=MPI.COMM_WORLD, atoms_converter=si.Geometry.fromASE
-  "options.fdf", "workingdir/siesta/", "aseopt", geometry=geom
+    # main_fdf, working_dir, label, geometry=None, comm=MPI.COMM_WORLD, atoms_converter=si.Geometry.fromASE
+    "options.fdf", "workingdir/siesta/", "aseopt", geometry=geom
 ))
 atoms.rattle(stdev=0.03)
 opt = QuasiNewton(atoms, traj="optimize.traj")
