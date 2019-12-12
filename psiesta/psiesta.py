@@ -53,7 +53,7 @@ class _FSiestaLibAsClass:
         """
         global _first_lib_loc
         self.launched = False
-        self.working_dir = working_dir
+        self.working_dir = Path(working_dir)
         self.comm = comm
 
         if _first_lib_loc is None:
