@@ -8,8 +8,9 @@ from io import StringIO
 from contextlib import contextmanager
 import os
 
-
-_first_lib_loc = None
+# Load immediately to avoid someone else loading non-mpi-enabled libraries first
+import psiesta._psiesta as _lib0  # noqa
+_first_lib_loc = Path(importlib.util.find_spec("psiesta._psiesta").origin)
 
 
 def _fdf_to_content(fdflike, base_dir=None, geometry=None):
