@@ -60,7 +60,7 @@ Relevant properties, other than those returned directly, can be read from the ou
 It is recommended to use [sisl](https://github.com/zerothi/sisl) for this.
 There are some shortcuts for the hamiltonian (as shown above), as well as density matrices and fermi energy.
 
-Further you may need to use a patched Siesta (there are two bugs that might cause crashes) -- see [JonasLB's Siesta branch on Gitlab](gitlab.com/jonaslb/siesta) for the patched version.
+Further you may need to use a patched Siesta (there are two bugs that might cause crashes) -- see [JonasLB's Siesta branch on Gitlab](https://gitlab.com/jonaslb/siesta) for the patched version. (see readme in the `jolubmaster` branch)
 
 
 ## Obtaining source, building and installing
@@ -72,7 +72,7 @@ It *should* work for both intel and gnu compilers, but be aware that LTO can com
 
 On some platforms it is necessary to link more libraries than Siesta is otherwise compiled with. It is currently a little unclear why, but in one case I needed to use `EXTRA_COMP_ARGS="-lmkl_avx512 -lmkl_def"` (which the setup.py-file will recognize).
 
-As noted above also see [JonasLB's Siesta branch on Gitlab](gitlab.com/jonaslb/siesta) for two patches that fixes some SiestaAsASubroutine crashes.
+As noted above also see [JonasLB's Siesta branch on Gitlab](https://gitlab.com/jonaslb/siesta) for two patches that fixes some SiestaAsASubroutine crashes. (see readme in the `jolubmaster` branch)
 
 ## Behaviour
 See also [the SiestaSubroutine readme](https://gitlab.com/siesta-project/siesta/tree/master/Util/SiestaSubroutine/README).
