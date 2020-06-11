@@ -136,8 +136,12 @@ if BUILD:
 
 cythonmods = cythonize([Extension(**extargs)])
 
+long_description = (Path(__file__).parent / "README.md").read_text()
+
 setup(
     name="psiesta",
+    packages=['psiesta'],
+    version='0.3',
     include_dirs=[np.get_include()],
     ext_modules=cythonmods,
     zip_safe=False,
@@ -146,10 +150,11 @@ setup(
         "mpi4py",
         "sisl",
     ],
-    packages=['psiesta'],
-    version='0.3',
     description='Siesta as a Python library',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author="Jonas Lundholm Bertelsen",
     url="https://github.com/jonaslb/psiesta",
     license="GPLv3+",
+    python_requires='>=3.6',
 )
