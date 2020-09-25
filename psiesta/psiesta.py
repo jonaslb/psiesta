@@ -198,29 +198,9 @@ class FilePSiesta(_FSiestaLibAsClass):
             The main fdf sile for the calculation."""
         return si.get_sile(self.label_dir / (self.label + ".fdf"))
 
-    def read_hamiltonian(self):
-        """Read the hamiltonian.
-
-        Returns
-        -------
-        H : sisl.Hamiltonian
-            Read from the label working directory."""
-        with self.get_sile() as sile:
-            H = sile.read_hamiltonian()
-        return H
-
-    def read_density_matrices(self):
-        """Read the density matrices.
-
-        Returns
-        -------
-        DM : sisl.DensityMatrix
-            The density matrix read from label working dir.
-        EDM : sisl.EnergyDensityMatrix
-            The energy density matrix read from label working dir."""
-        with self.get_sile() as sile:
-            DM, EDM = sile.read_density_matrices()
-        return DM, EDM
-
-    def __del__(self):
-        super().__del__()  # todo: necessary?
+    def __getattr__(self, name):
+        if name.startswith("read_"):
+            s = self.get_sile()
+            if hasattr(s, name):
+                return s.name
+        raise AttributeError
