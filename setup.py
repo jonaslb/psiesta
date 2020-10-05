@@ -134,7 +134,7 @@ if BUILD:
         include_dirs=[i[2:] for i in includes]
     ))
 
-cythonmods = cythonize([Extension(**extargs)])
+cythonmods = cythonize([Extension(**extargs), Extension(name="psiesta._signal2exception", sources=["psiesta/_signal2exception.pyx"])])
 
 long_description = (Path(__file__).parent / "README.md").read_text()
 

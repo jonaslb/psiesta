@@ -2,8 +2,8 @@ cimport numpy as np
 import numpy as np
 from collections import namedtuple
 from mpi4py import MPI
-
-RunOutput = namedtuple("RunOutput", "energy forces stress")
+from psiesta.runoutput import RunOutput
+from psiesta._signal2exception import raise_on_sigabrt
 
 cdef extern:
     void fpsiesta_launch(char* label, int* mpi_comm)
@@ -69,7 +69,8 @@ class FSiesta:
         cdef double[:, ::1] stressview = stress
         cdef double[:, ::1] cellview = cell
 
-        fpsiesta_forces(self.label.encode(), &na, &loc_view[0, 0], &cellview[0, 0], &e, &force_view[0, 0], &stressview[0, 0])
+        with raise_on_sigabrt():
+            fpsiesta_forces(self.label.encode(), &na, &loc_view[0, 0], &cellview[0, 0], &e, &force_view[0, 0], &stressview[0, 0])
         return RunOutput(e, forces, stress)
 
     def _get(self, what, np.ndarray [np.float64_t, ndim=1] output_array):
