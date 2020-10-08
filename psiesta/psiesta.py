@@ -7,6 +7,7 @@ import sisl as si
 from io import StringIO
 from contextlib import contextmanager
 import os
+from functools import wraps
 
 # Load immediately to avoid someone else loading non-mpi-enabled libraries first
 import psiesta._psiesta as _lib0  # noqa
@@ -201,6 +202,11 @@ class FilePSiesta(_FSiestaLibAsClass):
     def __getattr__(self, name):
         if name.startswith("read_"):
             s = self.get_sile()
-            if hasattr(s, name):
-                return s.name
+            if hasattr(s, name) and callable(getattr(s, name)):
+                func = getattr(s, name)
+                @wraps(func)
+                def wrapper(*args, **kwargs):
+                    with s:
+                        return func(*args, **kwargs)
+                return wrapper
         raise AttributeError
