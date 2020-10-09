@@ -65,15 +65,23 @@ You should use a Siesta version later than the git master as of 2020-06-10, as a
 
 ## Obtaining source, building and installing
 You can obtain the source by simply cloning this repository.
-To build, you must have a properly set up `arch.make` for Siesta in your Obj-dir, and you must have at least compiled Siesta there (see the note above for a patched Siesta).
-You can then run `OBJ=/my/custom/siesta/Obj/ python3 setup.py install [--user] [--prefix=<prefix>]` (or use `build` instead of `install`) to build PSiesta.
-The setup.py-file makes use of Siesta's own `Makefile` (which includes your `arch.make`) in combination with `--dry-run` to extract the compilation and link arguments.
-It *should* work for both intel and gnu compilers, but be aware that LTO can complicate things, and ensure that any external libraries that are used (eg. flook) are compiled with `-fPIC`.
 
-On some platforms it is necessary to link more libraries than Siesta is otherwise compiled with. It is currently a little unclear why, but in one case I needed to use `EXTRA_COMP_ARGS="-lmkl_avx512 -lmkl_def"` (which the setup.py-file will recognize).
+To build and install, there are two situations listed below.
+In all cases, Siesta must be built with `-fPIC`.
+You must also use a Siesta version later than the git master as of 2020-06-10 as mentioned above.
 
-As noted above, you should use a Siesta version later than the git master as of 2020-06-10.
+### A: Installed Siesta *WITH* libsiesta and pkgconf
+Siesta may include a "libsiesta" functionality in the near future (probably v. 4.2+). 
+If you have such a version installed, this is for you.
+In that case you only need to execute `pip3 install .` to install PSiesta.
+This uses `pkgconf` to find all dependencies and link flags.
+You may use the flags `--user` to install for yourself only and `--no-build-isolation` which usually speeds things up.
 
+### B: Custom built Siesta not installed
+In this case you can use the script `find_manual_siesta.py` in the base directory to create an ad-hoc `pkgconf`-file that directs the build system towards your Siesta obj-dir.
+The script takes the object dir as the first argument.
+You can optionally pass `--create-libsiesta` if your version of Siesta hasn't created `libsiesta.a` in the object-directory.
+The script will tell you how to proceed when it's done (similar to situation A, but you may need to set further options).
 
 ## Behaviour
 See also [the SiestaSubroutine readme](https://gitlab.com/siesta-project/siesta/tree/master/Util/SiestaSubroutine/README).
@@ -88,5 +96,4 @@ It will also prepend some settings to your fdf-file: Notably `MD.TypeOfRun force
 * Only a few properties can currently be fetched directly via the bindings. Other properties must be obtained via the output-files.
   Feel free to create an issue if you'd like something in particular built-in, or send a PR if you've implemented it already.
 * You don't get an exception when eg. the fdf-file contains an error. Instead, the whole process dies.
-  This is because on error, Siesta calls `abort()` to "helpfully" crash and spit out a stacktrace.
-  TODO: Can we catch sigabrt and raise a Python exception with the stacktrace instead?
+  This is because on error, Siesta intentionally kills itself which unfortunately includes the Python process.

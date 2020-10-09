@@ -17,6 +17,4 @@ cython = find_program('cython', required: true)
 
 libsiesta_dep = dependency('Siesta', required: true)
 
-#mpifort_dep = dependency('mpi', language: 'fortran', required: true)
-
 subdir('psiesta')

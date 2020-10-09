@@ -11,4 +11,4 @@ summary="Run Siesta as a subroutine in Python, with ASE bindings"
 home-page="https://github.com/jonaslb/psiesta"
 requires-python=">=3.6"
 description-file="README.md"
-requires = ["numpy", "mpi4py", "sisl"]
+requires = ["numpy", "mpi4py", "ase", "sisl"]
