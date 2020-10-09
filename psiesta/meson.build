@@ -16,6 +16,7 @@ psiesta_ext = py3.extension_module(
 )
 
 pyfiles = files(
+    '__init__.py',
     'ase.py',
     'psiesta.py',
 )
