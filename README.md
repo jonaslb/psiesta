@@ -66,22 +66,14 @@ You should use a Siesta version later than the git master as of 2020-06-10, as a
 ## Obtaining source, building and installing
 You can obtain the source by simply cloning this repository.
 
-To build and install, there are two situations listed below.
-In all cases, Siesta must be built with `-fPIC`.
-You must also use a Siesta version later than the git master as of 2020-06-10 as mentioned above.
+You only need to execute `pip3 install .` to install PSiesta.
+You may use the flags `--user` to install for yourself only.
 
-### A: Installed Siesta *WITH* libsiesta and pkgconf
-Siesta may include a "libsiesta" functionality in the near future (probably v. 4.2+). 
-If you have such a version installed, this is for you.
-In that case you only need to execute `pip3 install .` to install PSiesta.
-This uses `pkgconf` to find all dependencies and link flags.
-You may use the flags `--user` to install for yourself only and `--no-build-isolation` which usually speeds things up.
+Note that for some reason, the default pip behavour of using build isolation is an extremely slow process.
+You can speed up the process by using `--no-build-isolation`, but then you must install the build dependencies manually first: `mesonpep517` and `ninja`.
 
-### B: Custom built Siesta not installed
-In this case you can use the script `find_manual_siesta.py` in the base directory to create an ad-hoc `pkgconf`-file that directs the build system towards your Siesta obj-dir.
-The script takes the object dir as the first argument.
-You can optionally pass `--create-libsiesta` if your version of Siesta hasn't created `libsiesta.a` in the object-directory.
-The script will tell you how to proceed when it's done (similar to situation A, but you may need to set further options).
+Under the hood, `pkgconfig` is used via Meson to find all dependencies and link flags.
+Siesta is currently built from a custom branch based on the upstream PSML branch with meson build instructions added.
 
 ## Behaviour
 See also [the SiestaSubroutine readme](https://gitlab.com/siesta-project/siesta/tree/master/Util/SiestaSubroutine/README).

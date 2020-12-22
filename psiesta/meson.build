@@ -12,7 +12,7 @@ psiesta_ext = py3.extension_module(
     [psiesta_c, fpsiesta_files],
     subdir: 'psiesta',
     install: true,
-    dependencies: [py3_dep, libsiesta_dep]
+    dependencies: [py3_dep, mpi_dep, libsiesta_dep]
 )
 
 pyfiles = files(

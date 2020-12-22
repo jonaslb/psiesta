@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://gitlab.com/jonaslb/siesta.git
+revision = psml-meson
+depth=1
