@@ -21,4 +21,4 @@ pyfiles = files(
     'psiesta.py',
 )
 
-py3.install_sources(pyfiles, subdir: 'psiesta')
+py3.install_sources(pyfiles, subdir: 'psiesta', pure: false)

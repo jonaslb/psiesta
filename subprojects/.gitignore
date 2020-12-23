@@ -1,0 +1,14 @@
+# Subproject folders
+/fdict
+/gridxc
+/ncdf
+/psml
+/siesta
+/xmlf90
+
+# Wrapfiles promoted from siesta
+/fdict.wrap
+/gridxc.wrap
+/ncdf.wrap
+/psml.wrap
+/xmlf90.wrap

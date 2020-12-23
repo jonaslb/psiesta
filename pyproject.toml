@@ -1,6 +1,6 @@
 [build-system]
 # https://thiblahute.gitlab.io/mesonpep517/
-requires = ["mesonpep517", "ninja"]
+requires = ["mesonpep517", "ninja", "Cython", "wheel<0.35"]
 build-backend = "mesonpep517.buildapi"
 
 

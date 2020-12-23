@@ -2,10 +2,19 @@ project(
     'PSiesta',
     version: '0.3.0',
     default_options: [
-        'mpi=enabled'  # Subprojects can switch this, but we require it
+        'mpi=enabled',
+        'optimization=3',
+        # Consider using a native file (https://mesonbuild.com/Native-environments.html) if you want to
+        # set options (or switch toolchainetc).
+        # In practice further optimization than -O3 appears to be negligible.
+        # 'fortran_args=["-march=native", "-funroll-loops", "-fsplit-loops", "-funswitch-loops"]',
     ]
 )
 add_languages('c', 'fortran', required: true)
+
+if not get_option('mpi').enabled()
+    error('MPI is required.')
+endif
 
 py_mod = import('python')
 py3 = py_mod.find_installation('python3')
