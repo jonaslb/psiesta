@@ -1,0 +1,3 @@
+[submodule "subprojects/siesta"]
+	path = subprojects/siesta
+	url = https://gitlab.com/siesta-project/siesta.git
