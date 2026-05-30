@@ -1,6 +1,8 @@
 *.so
 *.o
 *.mod
+*.whl
 _psiesta.c
+build/
 builddir
 Siesta.pc

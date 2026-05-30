@@ -1,14 +1,19 @@
 [build-system]
-# https://thiblahute.gitlab.io/mesonpep517/
-requires = ["mesonpep517", "ninja", "Cython", "wheel<0.35"]
-build-backend = "mesonpep517.buildapi"
+requires = ["scikit-build-core", "cython", "numpy"]
+build-backend = "scikit_build_core.build"
 
+[project]
+name = "psiesta"
+version = "0.3.0"
+description = "Run Siesta as a subroutine in Python, with ASE bindings"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Jonas Lundholm Bertelsen" }]
+dependencies = ["numpy", "mpi4py", "ase", "sisl"]
 
-[tool.mesonpep517.metadata]
-author="Jonas Lundholm Bertelsen"
-author-email=""
-summary="Run Siesta as a subroutine in Python, with ASE bindings"
-home-page="https://github.com/jonaslb/psiesta"
-requires-python=">=3.6"
-description-file="README.md"
-requires = ["numpy", "mpi4py", "ase", "sisl"]
+[project.urls]
+Homepage = "https://github.com/jonaslb/psiesta"
+
+[tool.scikit-build]
+minimum-version = "0.10"
+build-dir = "build/{wheel_tag}"

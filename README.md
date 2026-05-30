@@ -69,11 +69,12 @@ You can obtain the source by simply cloning this repository.
 You only need to execute `pip3 install .` to install PSiesta.
 You may use the flags `--user` to install for yourself only.
 
-Note that for some reason, the default pip behavour of using build isolation is an extremely slow process.
-You can speed up the process by using `--no-build-isolation`, but then you must install the build dependencies manually first: `mesonpep517` and `ninja`.
+The current build-system proof-of-concept uses scikit-build-core and CMake.
+By default, CMake fetches upstream Siesta and builds it as a subproject, using Siesta's native CMake build.
+You can also point at an existing Siesta checkout with `-Ccmake.define.PSIESTA_SIESTA_SOURCE_DIR=/path/to/siesta` when invoking pip.
 
-Under the hood, `pkgconfig` is used via Meson to find all dependencies and link flags.
-Siesta is currently built from a custom branch based on the upstream PSML branch with meson build instructions added.
+You need the native Siesta build requirements available in the build environment: C and Fortran compilers, CMake, BLAS/LAPACK, MPI, and ScaLAPACK for the MPI subroutine build.
+If you use `--no-build-isolation`, install the Python build requirements manually first: `scikit-build-core`, `cython`, and `numpy`.
 
 ## Behaviour
 See also [the SiestaSubroutine readme](https://gitlab.com/siesta-project/siesta/tree/master/Util/SiestaSubroutine/README).
