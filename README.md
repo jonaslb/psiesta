@@ -66,15 +66,21 @@ You should use a Siesta version later than the git master as of 2020-06-10, as a
 ## Obtaining source, building and installing
 You can obtain the source by simply cloning this repository.
 
-You only need to execute `pip3 install .` to install PSiesta.
-You may use the flags `--user` to install for yourself only.
+The current build uses scikit-build-core and CMake. By default, CMake fetches upstream Siesta and builds it as a subproject, using Siesta's native CMake build.
 
-The current build-system proof-of-concept uses scikit-build-core and CMake.
-By default, CMake fetches upstream Siesta and builds it as a subproject, using Siesta's native CMake build.
-You can also point at an existing Siesta checkout with `-Ccmake.define.PSIESTA_SIESTA_SOURCE_DIR=/path/to/siesta` when invoking pip.
+For development, the recommended environment is Nix for native dependencies and uv for Python dependencies:
 
-You need the native Siesta build requirements available in the build environment: C and Fortran compilers, CMake, BLAS/LAPACK, MPI, and ScaLAPACK for the MPI subroutine build.
-If you use `--no-build-isolation`, install the Python build requirements manually first: `scikit-build-core`, `cython`, and `numpy`.
+```bash
+nix develop -c uv build --wheel
+```
+
+This produces a wheel in `dist/`. See `BUILD-ENVIRONMENT.md` for details.
+
+You can point at an existing Siesta checkout with:
+
+```bash
+nix develop -c uv build --wheel --config-setting=cmake.define.PSIESTA_SIESTA_SOURCE_DIR=/path/to/siesta
+```
 
 ## Behaviour
 See also [the SiestaSubroutine readme](https://gitlab.com/siesta-project/siesta/tree/master/Util/SiestaSubroutine/README).

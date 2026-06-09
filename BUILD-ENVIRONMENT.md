@@ -1,89 +1,77 @@
-# Build Environment Notes
+# Build Environment
 
-This project needs a substantial native scientific build stack to build upstream Siesta and the PSiesta extension. The goal is to avoid installing that stack globally with the system package manager.
+This repository uses a split build environment:
 
-## Preferred Direction: Nix Dev Shell
+- Nix provides the native scientific build stack.
+- uv manages Python build isolation and Python dependencies from `pyproject.toml`.
 
-The preferred direction is to use Nix for the native build environment while keeping `pyproject.toml` as the source of truth for the Python package.
+This keeps compilers, MPI, BLAS/LAPACK, NetCDF, and other native libraries out of the host system package manager while avoiding duplicated Python dependency metadata in Nix.
 
-Nix should provide:
+## Requirements
+
+Install Nix with flakes enabled. On Linux, daemon mode is recommended even for a single-user workstation because `/nix/store` remains root-owned and builds go through the normal Nix daemon path.
+
+The user does not need to be a trusted Nix user for the commands below.
+
+## Development Shell
+
+Enter the development shell with:
+
+```bash
+nix develop
+```
+
+Or run one command inside it:
+
+```bash
+nix develop -c <command>
+```
+
+The shell provides the native build environment from `flake.nix`, including:
 
 - C, C++, and Fortran compilers.
-- CMake and Ninja.
-- `pkg-config`.
-- MPI, likely OpenMPI for local multi-process runs.
-- BLAS, LAPACK, and ScaLAPACK.
-- NetCDF C and Fortran.
-- Siesta optional libraries such as libxc, libpsml, libfdf, xmlf90, libgridxc, and FFTW where available.
-- Python plus build-time Python tools such as `pip`, `scikit-build-core`, `cython`, and `numpy`.
+- OpenMPI compiler wrappers, with `CC=mpicc`, `CXX=mpicxx`, and `FC=mpifort`.
+- CMake, Ninja, and `pkg-config`.
+- BLAS, LAPACK, ScaLAPACK, NetCDF C/Fortran, HDF5, FFTW, libxc, readline, zlib, and curl.
+- `uv` for Python dependency resolution and PEP 517 builds.
 
-The agent can work naturally with this setup by prefixing commands with `nix develop -c`, for example:
+Check the shell with:
 
 ```bash
-nix develop -c python -m pip wheel . -v --no-build-isolation
-nix develop -c python -m pip install -v --no-build-isolation -e .
+nix develop -c sh -c 'cc --version && mpicc --version && mpifort --version && cmake --version && uv --version'
 ```
 
-This keeps the normal repository filesystem and avoids container bind-mount or shell-attach friction.
+## Building A Wheel
 
-## Nix Staging Plan
-
-Use Nix in two stages.
-
-Stage 1: development shell only.
-
-Nix supplies native dependencies and Python build tools. PSiesta itself is still built by pip/scikit-build-core from `pyproject.toml`.
-
-Stage 2: full Nix packaging if useful.
-
-Once the CMake build works, Siesta and PSiesta can optionally become proper Nix derivations for stronger reproducibility. This is more work and should not block the POC.
-
-## Python Dependency Duplication
-
-Avoid duplicating runtime Python dependencies in the environment definition where possible. Runtime dependencies belong in `pyproject.toml`.
-
-For the initial Nix shell, only duplicate Python packages required to build without isolation:
-
-- `scikit-build-core`
-- `cython`
-- `numpy`
-- `pip`
-
-If this still feels too duplicated, an alternative is to let Nix provide native libraries plus `uv`, then let `uv` resolve the Python dependencies from `pyproject.toml`.
-
-## Siesta Source Strategy
-
-Initially, let PSiesta's CMake build fetch upstream Siesta with `FetchContent`. This is convenient for proving the integration.
-
-Later, if stricter reproducibility is desired, Siesta can be provided by Nix instead:
-
-- As a fixed source input.
-- As a Nix-built CMake package.
-- As a source path passed to PSiesta with `PSIESTA_SIESTA_SOURCE_DIR`.
-
-## Why Not Containers First
-
-Containers remain a reasonable fallback, but they are less convenient for this POC:
-
-- The agent must run commands through the container boundary.
-- Build paths and caches are more awkward.
-- MPI can work locally in containers, but host integration can become fiddly.
-- Editing on the host while building in a container is workable but less direct than a Nix shell.
-
-## Why Not Conda/Pixi First
-
-Conda-forge likely has many of the required scientific packages, and pixi would be practical. However, this project prefers avoiding conda-style environment management and duplicated dependency metadata. Nix is a better match for a clean native toolchain shell while keeping Python packaging metadata in `pyproject.toml`.
-
-## Immediate Need
-
-The current host lacks a visible Fortran compiler. The first useful environment milestone is a shell where these commands work:
+Build the wheel with:
 
 ```bash
-cc --version
-mpicc --version
-mpifort --version
-cmake --version
-python -c "import numpy; print(numpy.get_include())"
+nix develop -c uv build --wheel
 ```
 
-Once that is available, rerun the scikit-build-core POC from inside the environment.
+`uv` reads `pyproject.toml`, creates an isolated Python build environment, installs the declared Python build requirements, and calls the scikit-build-core backend. scikit-build-core then configures and builds the CMake project.
+
+By default, the CMake project fetches upstream Siesta and builds it as a subproject. The build output is written under `build/`, and the wheel is written under `dist/`.
+
+## Using An Existing Siesta Checkout
+
+To build against an existing Siesta source checkout instead of fetching it, pass the CMake definition through uv/scikit-build-core:
+
+```bash
+nix develop -c uv build --wheel --config-setting=cmake.define.PSIESTA_SIESTA_SOURCE_DIR=/path/to/siesta
+```
+
+## Build Artifacts
+
+Expected local artifacts include:
+
+- `build/` for scikit-build-core, CMake, and fetched Siesta build trees.
+- `dist/` for generated wheels.
+- `~/.cache/uv/` for uv-managed Python build environments and downloads.
+- `/nix/store` and `/nix/var/nix` for Nix-managed native dependencies and build metadata.
+
+The Nix-managed system state is garbage-collectable through normal Nix commands. The repository build artifacts can be removed with:
+
+```bash
+rm -rf build dist
+```
