@@ -1,2 +1,0 @@
-# Always on!
-option('mpi', type: 'feature', value: 'enabled', yield: false)

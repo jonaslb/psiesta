@@ -1,1 +1,0 @@
-fpsiesta_files = files('fpsiesta.f90')
