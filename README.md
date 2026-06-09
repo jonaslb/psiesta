@@ -68,19 +68,67 @@ You can obtain the source by simply cloning this repository.
 
 The current build uses scikit-build-core and CMake. By default, CMake fetches upstream Siesta and builds it as a subproject, using Siesta's native CMake build.
 
-For development, the recommended environment is Nix for native dependencies and uv for Python dependencies:
+For development, the recommended environment is Nix for native dependencies and uv for Python dependencies. Nix provides the native scientific build stack, including C, C++, and Fortran compilers, OpenMPI compiler wrappers, CMake, Ninja, BLAS/LAPACK, ScaLAPACK, NetCDF C/Fortran, HDF5, FFTW, libxc, readline, zlib, curl, and `uv`. uv manages Python build isolation and dependencies from `pyproject.toml`.
+
+Install Nix with flakes enabled, then run commands inside the development shell:
+
+```bash
+nix develop
+```
+
+Or run a single command inside it:
+
+```bash
+nix develop -c <command>
+```
+
+Check the shell with:
+
+```bash
+nix develop -c sh -c 'cc --version && mpicc --version && mpifort --version && cmake --version && uv --version'
+```
+
+Build the wheel with:
 
 ```bash
 nix develop -c uv build --wheel
 ```
 
-This produces a wheel in `dist/`. See `BUILD-ENVIRONMENT.md` for details.
+This produces a wheel in `dist/`. Build output is written under `build/`.
 
 You can point at an existing Siesta checkout with:
 
 ```bash
 nix develop -c uv build --wheel --config-setting=cmake.define.PSIESTA_SIESTA_SOURCE_DIR=/path/to/siesta
 ```
+
+Local build artifacts can be removed with:
+
+```bash
+rm -rf build dist
+```
+
+## Smoke tests
+
+The test suite contains lightweight technical smoke tests. They are not intended
+to validate scientific accuracy; they only check that the Python extension
+imports, MPI starts, Siesta launches as a library, and simple H/H2 force calls
+return finite energy, force, and stress arrays.
+
+The calculation tests use `tests/fixtures/H.psml`.
+
+Run the tests from the Nix development shell with:
+
+```bash
+nix develop -c mpirun -n 1 uv run python -m mpi4py -m pytest -q
+```
+
+The Nix development shell exports OpenMPI's library directory so uv's isolated
+Python environment and `mpi4py` can locate `libmpi.so`.
+
+The smoke calculations deliberately use very loose settings, including a tiny
+basis, low mesh cutoff, one SCF step, and `SCF.MustConverge false`, so warnings
+about unconverged SCF are expected.
 
 ## Behaviour
 See also [the SiestaSubroutine readme](https://gitlab.com/siesta-project/siesta/tree/master/Util/SiestaSubroutine/README).

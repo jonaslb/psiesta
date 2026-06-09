@@ -45,6 +45,7 @@
               export FC=mpifort
               export F77=mpifort
               export F90=mpifort
+              export LD_LIBRARY_PATH=${pkgs.openmpi}/lib:$LD_LIBRARY_PATH
             '';
           };
         });
