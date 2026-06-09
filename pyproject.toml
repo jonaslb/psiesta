@@ -1,0 +1,28 @@
+[build-system]
+requires = ["scikit-build-core", "cython", "numpy"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "psiesta"
+version = "0.3.0"
+description = "Run Siesta as a subroutine in Python, with ASE bindings"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Jonas Lundholm Bertelsen" }]
+dependencies = ["numpy", "mpi4py", "ase", "sisl"]
+
+[project.urls]
+Homepage = "https://github.com/jonaslb/psiesta"
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.scikit-build]
+minimum-version = "0.10"
+build-dir = "build/{wheel_tag}"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

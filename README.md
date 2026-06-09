@@ -65,15 +65,70 @@ You should use a Siesta version later than the git master as of 2020-06-10, as a
 
 ## Obtaining source, building and installing
 You can obtain the source by simply cloning this repository.
-To build, you must have a properly set up `arch.make` for Siesta in your Obj-dir, and you must have at least compiled Siesta there (see the note above for a patched Siesta).
-You can then run `OBJ=/my/custom/siesta/Obj/ python3 setup.py install [--user] [--prefix=<prefix>]` (or use `build` instead of `install`) to build PSiesta.
-The setup.py-file makes use of Siesta's own `Makefile` (which includes your `arch.make`) in combination with `--dry-run` to extract the compilation and link arguments.
-It *should* work for both intel and gnu compilers, but be aware that LTO can complicate things, and ensure that any external libraries that are used (eg. flook) are compiled with `-fPIC`.
 
-On some platforms it is necessary to link more libraries than Siesta is otherwise compiled with. It is currently a little unclear why, but in one case I needed to use `EXTRA_COMP_ARGS="-lmkl_avx512 -lmkl_def"` (which the setup.py-file will recognize).
+The current build uses scikit-build-core and CMake. By default, CMake fetches upstream Siesta and builds it as a subproject, using Siesta's native CMake build.
 
-As noted above, you should use a Siesta version later than the git master as of 2020-06-10.
+For development, the recommended environment is Nix for native dependencies and uv for Python dependencies. Nix provides the native scientific build stack, including C, C++, and Fortran compilers, OpenMPI compiler wrappers, CMake, Ninja, BLAS/LAPACK, ScaLAPACK, NetCDF C/Fortran, HDF5, FFTW, libxc, readline, zlib, curl, and `uv`. uv manages Python build isolation and dependencies from `pyproject.toml`.
 
+Install Nix with flakes enabled, then run commands inside the development shell:
+
+```bash
+nix develop
+```
+
+Or run a single command inside it:
+
+```bash
+nix develop -c <command>
+```
+
+Check the shell with:
+
+```bash
+nix develop -c sh -c 'cc --version && mpicc --version && mpifort --version && cmake --version && uv --version'
+```
+
+Build the wheel with:
+
+```bash
+nix develop -c uv build --wheel
+```
+
+This produces a wheel in `dist/`. Build output is written under `build/`.
+
+You can point at an existing Siesta checkout with:
+
+```bash
+nix develop -c uv build --wheel --config-setting=cmake.define.PSIESTA_SIESTA_SOURCE_DIR=/path/to/siesta
+```
+
+Local build artifacts can be removed with:
+
+```bash
+rm -rf build dist
+```
+
+## Smoke tests
+
+The test suite contains lightweight technical smoke tests. They are not intended
+to validate scientific accuracy; they only check that the Python extension
+imports, MPI starts, Siesta launches as a library, and simple H/H2 force calls
+return finite energy, force, and stress arrays.
+
+The calculation tests use `tests/fixtures/H.psml`.
+
+Run the tests from the Nix development shell with:
+
+```bash
+nix develop -c mpirun -n 1 uv run python -m mpi4py -m pytest -q
+```
+
+The Nix development shell exports OpenMPI's library directory so uv's isolated
+Python environment and `mpi4py` can locate `libmpi.so`.
+
+The smoke calculations deliberately use very loose settings, including a tiny
+basis, low mesh cutoff, one SCF step, and `SCF.MustConverge false`, so warnings
+about unconverged SCF are expected.
 
 ## Behaviour
 See also [the SiestaSubroutine readme](https://gitlab.com/siesta-project/siesta/tree/master/Util/SiestaSubroutine/README).
@@ -88,5 +143,4 @@ It will also prepend some settings to your fdf-file: Notably `MD.TypeOfRun force
 * Only a few properties can currently be fetched directly via the bindings. Other properties must be obtained via the output-files.
   Feel free to create an issue if you'd like something in particular built-in, or send a PR if you've implemented it already.
 * You don't get an exception when eg. the fdf-file contains an error. Instead, the whole process dies.
-  This is because on error, Siesta calls `abort()` to "helpfully" crash and spit out a stacktrace.
-  TODO: Can we catch sigabrt and raise a Python exception with the stacktrace instead?
+  This is because on error, Siesta intentionally kills itself which unfortunately includes the Python process.

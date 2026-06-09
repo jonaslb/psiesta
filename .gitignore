@@ -1,4 +1,13 @@
 *.so
 *.o
 *.mod
+*.whl
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+uv.lock
 _psiesta.c
+build/
+builddir
+Siesta.pc
